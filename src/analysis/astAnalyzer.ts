@@ -283,7 +283,7 @@ export class AstAnalyzer {
             if (touchesSecret) {
               // Logger Sink
               if (
-                /^(console\.(log|error|warn|info|debug)|logger\.(log|error|warn|info|debug))$/.test(
+                /^(?:(?:window|global|globalThis)\.)?(?:console\.(?:log|error|warn|info|debug|trace|table|dir)|logger\.(?:log|error|warn|info|debug|trace))$/.test(
                   callText
                 )
               ) {
@@ -324,7 +324,10 @@ export class AstAnalyzer {
               }
 
               // HTTP Request Sink (fetch, axios, http.request)
-              else if (/^(fetch|axios|axios\.(get|post|put)|http\.request|https\.request)$/.test(callText)) {
+              else if (
+                /^(?:(?:window|global|globalThis)\.)?fetch$/.test(callText) ||
+                /^(?:axios|axios\.(?:get|post|put|patch|delete)|http\.request|https\.request)$/.test(callText)
+              ) {
                 let destination = 'Unknown / dynamic';
                 if (node.arguments.length > 0) {
                   const firstArg = node.arguments[0];
@@ -370,6 +373,25 @@ export class AstAnalyzer {
                     endColumn: pos.endColumn,
                     details: 'Credential forwarded to analytics / telemetry service',
                     riskLevel: 'HIGH',
+                    codeSnippet: node.getText(sourceFile),
+                  },
+                });
+              }
+
+              // External / Unknown Function Call Sink
+              else if (!functionParams.has(callText)) {
+                secret.sinks.push({
+                  sinkType: 'external_call',
+                  node: {
+                    id: `sink_ext_${pos.line}_${pos.column}`,
+                    label: `${callText}()`,
+                    kind: 'sink',
+                    line: pos.line,
+                    column: pos.column,
+                    endLine: pos.endLine,
+                    endColumn: pos.endColumn,
+                    details: `Passed as argument to external or imported function '${callText}'`,
+                    riskLevel: 'MEDIUM',
                     codeSnippet: node.getText(sourceFile),
                   },
                 });
@@ -479,6 +501,12 @@ export class AstAnalyzer {
               }
               reasons.push(`🟡 Medium: Secret transmitted in external HTTP request to ${s.destination}.`);
               remediationAdvice = `Verify that ${s.destination} is a trusted, secure destination.`;
+            } else if (s.sinkType === 'external_call') {
+              if (highestRisk !== 'CRITICAL' && highestRisk !== 'HIGH') {
+                highestRisk = 'MEDIUM';
+              }
+              reasons.push(`🟡 Medium: Secret passed to external or unverified function \`${s.node.label}\`.`);
+              remediationAdvice = `Verify that \`${s.node.label}\` does not log or leak the credential.`;
             }
           }
         } else {

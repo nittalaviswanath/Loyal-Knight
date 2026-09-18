@@ -18,7 +18,7 @@ export const KNOWN_PATTERNS: PatternRule[] = [
     id: 'aws-secret-key',
     name: 'AWS Secret Access Key',
     provider: 'aws',
-    regex: /(?:aws_secret_access_key|aws_secret_key|secret_access_key)\s*[:=]\s*["']?([A-Za-z0-9/+=]{40})["']?/gi,
+    regex: /(?:aws_secret_access_key|aws_secret_key|secret_access_key)\s*[:=]\s*["'`]?([A-Za-z0-9/+=]{40})["'`]?/gi,
     confidence: 'high',
     extractSecret: (match) => ({
       secret: match[1],
@@ -41,6 +41,22 @@ export const KNOWN_PATTERNS: PatternRule[] = [
     provider: 'stripe',
     regex: /\b(pk_live_[0-9a-zA-Z]{24,})\b/g,
     confidence: 'medium',
+  },
+  // Stripe Test Secret Keys
+  {
+    id: 'stripe-test-key',
+    name: 'Stripe Test Secret Key',
+    provider: 'stripe',
+    regex: /\b((?:sk|rk)_test_[0-9a-zA-Z]{24,})\b/g,
+    confidence: 'low',
+  },
+  // Stripe Test Publishable Keys
+  {
+    id: 'stripe-test-publishable-key',
+    name: 'Stripe Test Publishable Key',
+    provider: 'stripe',
+    regex: /\b(pk_test_[0-9a-zA-Z]{24,})\b/g,
+    confidence: 'low',
   },
 
   // GitHub Personal Access Token (classic: ghp_...)
@@ -149,7 +165,7 @@ export const KNOWN_PATTERNS: PatternRule[] = [
     id: 'generic-secret-assignment',
     name: 'Generic API Secret Assignment',
     provider: 'generic',
-    regex: /(?:api[_-]?key|secret|auth[_-]?token|access[_-]?token|client[_-]?secret|private[_-]?key)\s*[:=]\s*["']([a-zA-Z0-9_\-./+=]{16,})["']/gi,
+    regex: /(?:api[_-]?key|secret|auth[_-]?token|access[_-]?token|client[_-]?secret|private[_-]?key)\s*[:=]\s*["'`]([a-zA-Z0-9_\-./+=]{16,})["'`]/gi,
     confidence: 'medium',
     extractSecret: (match) => ({
       secret: match[1],

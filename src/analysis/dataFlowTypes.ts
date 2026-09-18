@@ -3,7 +3,8 @@ export type SinkType =
   | 'http'
   | 'frontend_response'
   | 'error'
-  | 'telemetry';
+  | 'telemetry'
+  | 'external_call';
 
 export type RiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
 

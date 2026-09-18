@@ -287,6 +287,18 @@ export function scanLines(
 }
 
 /**
+ * Helper to compute 0-indexed line and column from a string offset.
+ */
+function getLineAndColumn(text: string, offset: number) {
+  const prefix = text.slice(0, offset);
+  const lines = prefix.split(/\r?\n/);
+  return {
+    line: lines.length - 1,
+    column: lines[lines.length - 1].length,
+  };
+}
+
+/**
  * Scans full document text and returns all detected secret findings.
  */
 export function scanText(text: string, options: ScanOptions = {}): SecretFinding[] {
@@ -294,5 +306,69 @@ export function scanText(text: string, options: ScanOptions = {}): SecretFinding
     return [];
   }
   const lines = text.split(/\r?\n/);
-  return scanLines(lines, 0, options);
+  const findings = scanLines(lines, 0, options);
+
+  // Extra pass: Multi-line string entropy tokens (which scanLines misses since it splits by newline)
+  const genericEnabled = options.providers ? options.providers.generic !== false : true;
+  if (genericEnabled) {
+    const entropyThreshold = options.entropyThreshold ?? DEFAULT_ENTROPY_THRESHOLD;
+    const minEntropyLength = options.minEntropyLength ?? DEFAULT_MIN_ENTROPY_LENGTH;
+
+    // Match template literals (backticks) that can span multiple lines
+    const quotedRegex = /`((?:\\.|[^`])*)`/g;
+    let match: RegExpExecArray | null;
+
+    while ((match = quotedRegex.exec(text)) !== null) {
+      const content = match[1];
+      if (content.includes('\n') && content.length >= minEntropyLength) {
+        if (isObviousPlaceholder(content)) {
+          continue;
+        }
+
+        const entropy = calculateShannonEntropy(content);
+        if (entropy >= entropyThreshold) {
+          const hash = hashSecret(content);
+          if (isHashSuppressed(hash, options.ignoredHashes)) {
+            continue;
+          }
+
+          const startOffset = match.index + 1;
+          const endOffset = startOffset + content.length;
+          const start = getLineAndColumn(text, startOffset);
+          const end = getLineAndColumn(text, endOffset);
+
+          // Determine confidence context
+          const contextPrefix = text.slice(Math.max(0, match.index - 50), match.index);
+          const contextMatch = /(?:const|let|var|val)\s+([a-zA-Z0-9_$]+)(?:\s*:[^=]+)?\s*=?\s*$/i.exec(contextPrefix.trimEnd());
+          let context = 'multi-line template literal';
+          if (contextMatch) {
+             context = `assigned to const/var ${contextMatch[1]}`;
+          }
+
+          let baseConfidence: FindingConfidence = 'low';
+          const isTestPath = options.filePath && /(?:\.test\.|\.spec\.|__tests__|fixtures?|mocks?)/i.test(options.filePath);
+          if (!isTestPath && /(?:api[_-]?key|secret|token|password|client[_-]?secret)/i.test(context)) {
+             baseConfidence = 'medium';
+          }
+
+          findings.push({
+            type: 'High-Entropy Secret',
+            provider: 'generic',
+            match: maskSecret(content),
+            rawMatch: content,
+            line: start.line,
+            column: start.column,
+            endLine: end.line,
+            endColumn: end.column,
+            confidence: baseConfidence,
+            entropy,
+            context,
+            hash,
+          });
+        }
+      }
+    }
+  }
+
+  return findings;
 }

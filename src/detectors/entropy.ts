@@ -146,8 +146,8 @@ export function extractCandidateTokens(line: string, minLength = 16): CandidateT
 export function extractLineContext(line: string, matchIndex: number): string {
   const prefix = line.slice(0, matchIndex).trim();
 
-  // Pattern: const/let/var AWS_KEY = ...
-  const varMatch = /(?:const|let|var|val)\s+([a-zA-Z0-9_$]+)\s*[:=]?\s*$/i.exec(prefix);
+  // Pattern: const/let/var AWS_KEY: string = ...
+  const varMatch = /(?:const|let|var|val)\s+([a-zA-Z0-9_$]+)(?:\s*:[^=]+)?\s*=?\s*$/i.exec(prefix);
   if (varMatch) {
     return `assigned to const/var ${varMatch[1]}`;
   }
