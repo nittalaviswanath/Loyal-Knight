@@ -1,71 +1,73 @@
-# loyal-knight- README
+# 🛡️ Loyal Knight
 
-This is the README for your extension "loyal-knight-". After writing up a brief description, we recommend including the following sections.
+**Loyal Knight** is a powerful, locally-running VS Code extension designed for **API Leak & Secret Lifecycle Security**. It acts as your personal guardian, ensuring that sensitive data such as API keys, tokens, and passwords are never accidentally hardcoded or committed to your repositories.
 
-## Features
+## 🚀 Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Loyal Knight provides comprehensive, real-time protection directly within your IDE:
 
-For example if there is an image subfolder under your extension project workspace:
+- **⚡ Real-time Live Scanning**: Scans your active buffers as you type to instantly detect potential secrets.
+- **💾 Scan on Save**: Performs dedicated security and data-flow analysis every time a file is saved.
+- **🐙 Git Pre-commit Protection**: Scans staged changes to prevent secrets from ever reaching your repository.
+- **📊 Security Dashboard**: A centralized view of all detected vulnerabilities and the overall security posture of your workspace.
+- **🔍 Advanced Secret Detection**: Uses advanced pattern matching and entropy analysis to detect even obfuscated secrets.
+- **🛠️ Auto-Remediation**: Offers one-click solutions to safely extract hardcoded secrets into environment variables or secure storage.
+- **🌊 Data Flow Analysis**: Tracks how secrets move through your application to understand the lifecycle of sensitive data.
 
-\!\[feature X\]\(images/feature-x.png\)
+## 📦 Installation
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+To install Loyal Knight in VS Code:
+1. Open the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`).
+2. Search for `Loyal Knight`.
+3. Click **Install**.
 
-## Requirements
+*Note: As this is a local development version, you can also run it by opening this repository in VS Code and pressing `F5`.*
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## ⚙️ Configuration
 
-## Extension Settings
+You can customize Loyal Knight's behavior via VS Code Settings (`Ctrl+,` or `Cmd+,`):
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+| Setting | Type | Default | Description |
+|---|---|---|---|
+| `loyalKnight.enabled` | Boolean | `true` | Master switch to enable or disable the extension. |
+| `loyalKnight.liveScan.enabled` | Boolean | `true` | Enable real-time buffer scanning as you type. |
+| `loyalKnight.scanOnSave.enabled` | Boolean | `true` | Enable security and data-flow scan every time a file is saved. |
 
-For example:
+## 🎮 Commands
 
-This extension contributes the following settings:
+Access these commands via the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+- `Loyal Knight: Toggle Protection`: Quickly enable or disable the extension.
+- `Loyal Knight: Scan Current File`: Run an on-demand scan on the currently active file.
+- `Loyal Knight: Scan Workspace`: Run a comprehensive scan across the entire workspace.
+- `Loyal Knight: Scan Staged Changes`: Check your git staging area for potential leaks before committing.
+- `Loyal Knight: Show Security Dashboard`: Open the central security dashboard.
+- `Loyal Knight: Show Secret Flow`: Visualize how detected secrets flow through your code.
+- `Loyal Knight: Auto Remediate Secret`: Apply automatic fixes for highlighted secrets.
+- `Loyal Knight: Open Settings`: Quickly jump to the extension's configuration.
 
-## Known Issues
+## 🏗️ Architecture
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+The codebase is organized into several key modules:
 
-## Release Notes
+- `src/detectors/`: Contains logic for identifying secrets using regex patterns and entropy analysis.
+- `src/scanner/`: Manages file, buffer, and workspace scanning workflows.
+- `src/analysis/`: Analyzes the flow of sensitive data through the Abstract Syntax Tree (AST).
+- `src/remediation/`: Provides logic for automatically fixing hardcoded secrets.
+- `src/git/`: Handles integration with Git to analyze staged files.
+- `src/views/` & `src/ui/`: Implement the Security Dashboard and other UI elements.
+- `src/diagnostics/`: Integrates with VS Code's problem matcher to highlight issues directly in the editor.
 
-Users appreciate release notes as you update your extension.
+## 🤝 Contributing
 
-### 1.0.0
+We welcome contributions! To get started:
 
-Initial release of ...
+1. Clone the repository.
+2. Run `npm install` to install dependencies.
+3. Open the project in VS Code.
+4. Press `F5` to compile and launch a new Extension Development Host window.
+5. Run tests using `npm run test:unit`.
 
-### 1.0.1
+## 📄 License
 
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+This project is licensed under the [MIT License](LICENSE).
