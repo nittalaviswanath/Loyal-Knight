@@ -340,24 +340,16 @@ export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Dis
   <!-- Workspace Stats -->
   <div class="mb-lg">
     <div class="section-title">Workspace Leaks</div>
-    <div class="stats-grid">
-      <div class="stat-total-wrapper">
-        <span class="stat-total-num ${totalWorkspaceLeaks > 0 ? 'color-high' : 'text-muted'}">${totalWorkspaceLeaks}</span>
-        <span class="text-sm text-muted">Total</span>
+    <div class="flex items-center gap-md" style="background: var(--bg-subtle); padding: 8px 12px; border-radius: 4px; border: 1px solid var(--border-color);">
+      <div class="flex items-center gap-sm">
+        <span class="text-bold ${totalWorkspaceLeaks > 0 ? 'color-high' : 'text-muted'}" style="font-size: 1.1em;">${totalWorkspaceLeaks}</span>
+        <span class="text-muted text-sm">Total</span>
       </div>
-      <div class="flex-col justify-between">
-        <div class="stat-row">
-          <span class="text-sm text-muted">High</span>
-          <span class="text-bold color-high">${counts.high}</span>
-        </div>
-        <div class="stat-row">
-          <span class="text-sm text-muted">Medium</span>
-          <span class="text-bold color-mid">${counts.medium}</span>
-        </div>
-        <div class="stat-row">
-          <span class="text-sm text-muted">Low</span>
-          <span class="text-bold color-low">${counts.low}</span>
-        </div>
+      <span class="text-muted" style="opacity: 0.3;">|</span>
+      <div class="flex items-center gap-md text-sm">
+        <span><span class="text-bold color-high">${counts.high}</span> <span class="text-muted">High</span></span>
+        <span><span class="text-bold color-mid">${counts.medium}</span> <span class="text-muted">Mid</span></span>
+        <span><span class="text-bold color-low">${counts.low}</span> <span class="text-muted">Low</span></span>
       </div>
     </div>
   </div>
