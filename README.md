@@ -9,8 +9,9 @@ Loyal Knight provides comprehensive, real-time protection directly within your I
 - **⚡ Real-time Live Scanning**: Scans your active buffers as you type to instantly detect potential secrets.
 - **💾 Scan on Save**: Performs dedicated security and data-flow analysis every time a file is saved.
 - **🐙 Git Pre-commit Protection**: Scans staged changes to prevent secrets from ever reaching your repository.
-- **📊 Security Dashboard**: A centralized view of all detected vulnerabilities and the overall security posture of your workspace.
-- **🔍 Advanced Secret Detection**: Uses advanced pattern matching and entropy analysis to detect even obfuscated secrets.
+- **📊 Security Dashboard**: A centralized, simplified view of all detected vulnerabilities and the overall security posture of your workspace.
+- **🔍 Advanced Secret Detection**: Uses advanced pattern matching and fast Shannon entropy analysis to detect even obfuscated secrets.
+- **🧠 Context-Aware Recognition**: Uses context clues (e.g., variable assignments, test files) to adjust finding confidence and reduce false positives.
 - **🛠️ Auto-Remediation**: Offers one-click solutions to safely extract hardcoded secrets into environment variables or secure storage.
 - **🌊 Data Flow Analysis**: Tracks how secrets move through your application to understand the lifecycle of sensitive data.
 
@@ -33,6 +34,8 @@ You can customize Loyal Knight's behavior via VS Code Settings (`Ctrl+,` or `Cmd
 | `loyalKnight.liveScan.enabled` | Boolean | `true` | Enable real-time buffer scanning as you type. |
 | `loyalKnight.scanOnSave.enabled` | Boolean | `true` | Enable security and data-flow scan every time a file is saved. |
 
+By default, files like `package.json` and `package-lock.json` are automatically ignored to prevent false positives during entropy scanning.
+
 ## 🎮 Commands
 
 Access these commands via the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
@@ -45,17 +48,20 @@ Access these commands via the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
 - `Loyal Knight: Show Secret Flow`: Visualize how detected secrets flow through your code.
 - `Loyal Knight: Auto Remediate Secret`: Apply automatic fixes for highlighted secrets.
 - `Loyal Knight: Open Settings`: Quickly jump to the extension's configuration.
+- `Loyal Knight: Refresh Dashboard`: Refresh the Security Dashboard views.
 
 ## 🏗️ Architecture
 
 The codebase is organized into several key modules:
 
-- `src/detectors/`: Contains logic for identifying secrets using regex patterns and entropy analysis.
+- `src/detectors/`: Contains logic for identifying secrets using regex patterns, fast entropy analysis, and context recognition.
 - `src/scanner/`: Manages file, buffer, and workspace scanning workflows.
 - `src/analysis/`: Analyzes the flow of sensitive data through the Abstract Syntax Tree (AST).
 - `src/remediation/`: Provides logic for automatically fixing hardcoded secrets.
+- `src/commands/`: Command palette handlers and integrations.
+- `src/config/`: Configuration parsing and default ignore management (e.g., `package.json` blacklisting).
 - `src/git/`: Handles integration with Git to analyze staged files.
-- `src/views/` & `src/ui/`: Implement the Security Dashboard and other UI elements.
+- `src/views/` & `src/ui/`: Implement the simplified Security Dashboard and other UI elements.
 - `src/diagnostics/`: Integrates with VS Code's problem matcher to highlight issues directly in the editor.
 
 ## 🤝 Contributing
