@@ -1,0 +1,162 @@
+{
+  "name": "loyal-knight",
+  "displayName": "LOYAL KNIGHT",
+  "description": "Local API Leak & Secret Lifecycle Security Extension",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.138.0"
+  },
+  "categories": [
+    "Security",
+    "Linters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "loyalKnight",
+          "title": "LOYAL KNIGHT",
+          "icon": "media/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "loyalKnight": [
+        {
+          "id": "loyalKnight.dashboard",
+          "name": "Security Dashboard"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "loyalKnight.toggleProtection",
+          "when": "view == loyalKnight.dashboard",
+          "group": "navigation@1"
+        },
+        {
+          "command": "loyalKnight.showSecretFlow",
+          "when": "view == loyalKnight.dashboard",
+          "group": "navigation@2"
+        },
+        {
+          "command": "loyalKnight.refresh",
+          "when": "view == loyalKnight.dashboard",
+          "group": "navigation@3"
+        },
+        {
+          "command": "loyalKnight.openSettings",
+          "when": "view == loyalKnight.dashboard",
+          "group": "navigation@4"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "loyalKnight.toggleProtection",
+        "title": "Toggle Protection",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "loyalKnight.scanCurrentFile",
+        "title": "Scan Current File",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(search)"
+      },
+      {
+        "command": "loyalKnight.scanWorkspace",
+        "title": "Scan Workspace",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(search)"
+      },
+      {
+        "command": "loyalKnight.scanStagedChanges",
+        "title": "Scan Staged Changes",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(git-commit)"
+      },
+      {
+        "command": "loyalKnight.showSecurityDashboard",
+        "title": "Show Security Dashboard",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "loyalKnight.showSecretFlow",
+        "title": "Show Secret Flow",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "loyalKnight.autoRemediate",
+        "title": "Auto Remediate Secret",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "loyalKnight.openSettings",
+        "title": "Open Settings",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "loyalKnight.refresh",
+        "title": "Refresh Dashboard",
+        "category": "LOYAL KNIGHT",
+        "icon": "$(refresh)"
+      }
+    ],
+    "configuration": {
+      "title": "Loyal Knight",
+      "properties": {
+        "loyalKnight.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Master switch: Enable or disable Loyal Knight secret protection"
+        },
+        "loyalKnight.liveScan.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time buffer scanning as you type"
+        },
+        "loyalKnight.scanOnSave.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable dedicated security and data-flow scan every time a file is saved"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "test:unit": "npm run compile && mocha --ui tdd out/test/detectors.test.js out/test/config.test.js out/test/astAnalyzer.test.js"
+  },
+  "dependencies": {
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.138.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "24.x",
+    "typescript-eslint": "^8.61.1",
+    "eslint": "^10.5.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0"
+  },
+  "overrides": {
+    "diff": "^8.0.4",
+    "serialize-javascript": "^7.0.6"
+  }
+}
