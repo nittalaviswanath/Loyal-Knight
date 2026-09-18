@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const scanner = new DocumentScanner(configManager, diagnosticsManager, statusBarManager);
   context.subscriptions.push(scanner);
 
-  // 5. Initialize Activity Bar Security Dashboard TreeView
+  // 5. Initialize Activity Bar Security Dashboard WebviewView
   const dashboardProvider = new DashboardProvider(
     diagnosticsManager,
     configManager,
@@ -36,7 +36,11 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(dashboardProvider);
 
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('loyalKnight.dashboard', dashboardProvider)
+    vscode.window.registerWebviewViewProvider('loyalKnight.dashboard', dashboardProvider, {
+      webviewOptions: {
+        retainContextWhenHidden: true,
+      },
+    })
   );
 
   // 6. Register Hover Provider

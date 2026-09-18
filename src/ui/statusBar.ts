@@ -20,12 +20,12 @@ export class StatusBarManager implements vscode.Disposable {
     }
 
     if (enabled) {
-      this.item.text = '$(shield) Loyal Knight: ON';
-      this.item.tooltip = 'Loyal Knight: Real-time secret protection is ACTIVE. Click to toggle OFF.';
+      this.item.text = '$(shield) Loyal Knight: ONLINE';
+      this.item.tooltip = 'Loyal Knight: Protection is ONLINE. Click to toggle OFFLINE.';
       this.item.backgroundColor = undefined;
     } else {
-      this.item.text = '$(circle-slash) Loyal Knight: OFF';
-      this.item.tooltip = 'Loyal Knight: Protection is PAUSED. Click to toggle ON.';
+      this.item.text = '$(circle-slash) Loyal Knight: OFFLINE';
+      this.item.tooltip = 'Loyal Knight: Protection is OFFLINE. Click to toggle ONLINE.';
       this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
     }
   }
@@ -36,7 +36,7 @@ export class StatusBarManager implements vscode.Disposable {
   public showSaveScanResult(
     durationMs: number,
     findingsCount: number,
-    flowsCount: number
+    _flowsCount: number
   ): void {
     if (!this.isEnabled) {
       return;
@@ -47,8 +47,7 @@ export class StatusBarManager implements vscode.Disposable {
     }
 
     const issuesText = findingsCount > 0 ? `$(error) ${findingsCount} findings` : 'Clean';
-    const flowsText = flowsCount > 0 ? ` | $(type-hierarchy) ${flowsCount} flows` : '';
-    this.item.text = `$(shield) Loyal Knight: Saved (${durationMs}ms) - ${issuesText}${flowsText}`;
+    this.item.text = `$(shield) Loyal Knight: Saved (${durationMs}ms) - ${issuesText}`;
 
     this.revertTimeout = setTimeout(() => {
       this.update(this.isEnabled);

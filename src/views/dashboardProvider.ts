@@ -3,45 +3,15 @@ import * as path from 'node:path';
 import { DiagnosticsManager } from '../diagnostics/diagnosticsManager.js';
 import { ConfigManager } from '../config/configManager.js';
 import { SecretFinding } from '../detectors/types.js';
-import { DataFlowGraph } from '../analysis/dataFlowTypes.js';
-import { FlowWebviewPanel } from '../ui/flowWebview.js';
 
-export type DashboardItemType =
-  | 'root_status'
-  | 'root_current_file'
-  | 'root_flows'
-  | 'root_workspace'
-  | 'root_actions'
-  | 'root_findings'
-  | 'stat_item'
-  | 'action_item'
-  | 'finding_item'
-  | 'flow_item'
-  | 'empty_item';
-
-export class DashboardTreeItem extends vscode.TreeItem {
-  constructor(
-    label: string,
-    public readonly itemType: DashboardItemType,
-    collapsibleState: vscode.TreeItemCollapsibleState = vscode.TreeItemCollapsibleState.None,
-    public readonly finding?: SecretFinding,
-    public readonly flow?: DataFlowGraph,
-    public readonly fileUri?: vscode.Uri
-  ) {
-    super(label, collapsibleState);
-  }
-}
-
-export class DashboardProvider
-  implements vscode.TreeDataProvider<DashboardTreeItem>, vscode.Disposable {
-  private readonly _onDidChangeTreeData = new vscode.EventEmitter<DashboardTreeItem | undefined | void>();
-  public readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+export class DashboardProvider implements vscode.WebviewViewProvider, vscode.Disposable {
+  private _view?: vscode.WebviewView;
   private disposables: vscode.Disposable[] = [];
 
   constructor(
     private readonly diagnosticsManager: DiagnosticsManager,
     private readonly configManager: ConfigManager,
-    private readonly extensionUri?: vscode.Uri
+    private readonly _extensionUri?: vscode.Uri
   ) {
     this.disposables.push(
       this.diagnosticsManager.onDidChangeFindings(() => this.refresh()),
@@ -50,364 +20,419 @@ export class DashboardProvider
     );
   }
 
-  public refresh(): void {
-    this._onDidChangeTreeData.fire();
-  }
+  public resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ): void {
+    this._view = webviewView;
 
-  public getTreeItem(element: DashboardTreeItem): vscode.TreeItem {
-    return element;
-  }
-
-  public getChildren(element?: DashboardTreeItem): Thenable<DashboardTreeItem[]> {
-    if (!element) {
-      return Promise.resolve(this.getRootItems());
-    }
-
-    switch (element.itemType) {
-      case 'root_current_file':
-        return Promise.resolve(this.getCurrentFileStats());
-      case 'root_flows':
-        return Promise.resolve(this.getFlowItems());
-      case 'root_workspace':
-        return Promise.resolve(this.getWorkspaceStats());
-      case 'root_actions':
-        return Promise.resolve(this.getActionItems());
-      case 'root_findings':
-        return Promise.resolve(this.getFindingItems());
-      default:
-        return Promise.resolve([]);
-    }
-  }
-
-  private getRootItems(): DashboardTreeItem[] {
-    const config = this.configManager.getConfig();
-    const isActive = config.scanning.enabled;
-
-    // 1. Status Item
-    const statusItem = new DashboardTreeItem(
-      `Protection: ${isActive ? 'ACTIVE' : 'PAUSED'}`,
-      'root_status',
-      vscode.TreeItemCollapsibleState.None
-    );
-    statusItem.description = 'Click to Toggle';
-    statusItem.iconPath = new vscode.ThemeIcon(
-      'shield',
-      isActive
-        ? new vscode.ThemeColor('testing.iconPassed')
-        : new vscode.ThemeColor('disabledForeground')
-    );
-    statusItem.command = {
-      command: 'loyalKnight.toggleProtection',
-      title: 'Toggle Protection',
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: this._extensionUri ? [this._extensionUri] : [],
     };
 
-    // 2. Current File Root
+    webviewView.webview.onDidReceiveMessage(async (data) => {
+      switch (data.type) {
+        case 'toggleProtection':
+          await vscode.commands.executeCommand('loyalKnight.toggleProtection');
+          break;
+        case 'openSettings':
+          await vscode.commands.executeCommand('loyalKnight.openSettings');
+          break;
+        case 'openFile':
+          if (data.uri) {
+            try {
+              const uri = vscode.Uri.parse(data.uri);
+              const doc = await vscode.workspace.openTextDocument(uri);
+              await vscode.window.showTextDocument(doc);
+            } catch (err) {
+              console.error('[LOYAL KNIGHT] Failed to open file:', err);
+            }
+          }
+          break;
+        case 'openFinding':
+          if (data.uri) {
+            try {
+              const uri = vscode.Uri.parse(data.uri);
+              const doc = await vscode.workspace.openTextDocument(uri);
+              const editor = await vscode.window.showTextDocument(doc);
+              const range = new vscode.Range(
+                data.line,
+                data.column,
+                data.endLine,
+                data.endColumn
+              );
+              editor.selection = new vscode.Selection(range.start, range.end);
+              editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+            } catch (err) {
+              console.error('[LOYAL KNIGHT] Failed to jump to finding:', err);
+            }
+          }
+          break;
+      }
+    });
+
+    this.updateWebview();
+  }
+
+  public refresh(): void {
+    if (this._view) {
+      this.updateWebview();
+    }
+  }
+
+  private updateWebview(): void {
+    if (!this._view) {
+      return;
+    }
+    this._view.webview.html = this.renderHtml();
+  }
+
+  private renderHtml(): string {
+    const config = this.configManager.getConfig();
+    const isOnline = config.scanning.enabled;
+
+    // Workspace Stats
+    const allFindings: SecretFinding[] = [];
+    const allFindingsMap = this.diagnosticsManager.getAllFindings();
+    for (const findings of allFindingsMap.values()) {
+      allFindings.push(...findings);
+    }
+    const counts = this.diagnosticsManager.getSeverityCounts(allFindings);
+    const totalWorkspaceLeaks = allFindings.length;
+
+    // Current File Stats
     const activeEditor = vscode.window.activeTextEditor;
-    const fileName = activeEditor
+    const currentFileName = activeEditor
       ? path.basename(activeEditor.document.uri.fsPath)
       : 'No Active File';
+    const currentFindings = activeEditor
+      ? this.diagnosticsManager.getFindingsForUri(activeEditor.document.uri)
+      : [];
+    const currentFileLeaksCount = currentFindings.length;
 
-    const currentFileItem = new DashboardTreeItem(
-      `Current File: ${fileName}`,
-      'root_current_file',
-      vscode.TreeItemCollapsibleState.Expanded
-    );
-    currentFileItem.iconPath = new vscode.ThemeIcon('file');
-
-    // 3. Secret Flows Root
-    const flows = this.getActiveDocumentFlows();
-    const flowsItem = new DashboardTreeItem(
-      `Secret Flows (${flows.length})`,
-      'root_flows',
-      vscode.TreeItemCollapsibleState.Expanded
-    );
-    flowsItem.iconPath = new vscode.ThemeIcon('type-hierarchy');
-
-    // 4. Workspace Root
-    const workspaceItem = new DashboardTreeItem(
-      'Workspace',
-      'root_workspace',
-      vscode.TreeItemCollapsibleState.Expanded
-    );
-    workspaceItem.iconPath = new vscode.ThemeIcon('root-folder');
-
-    // 5. Actions Root
-    const actionsItem = new DashboardTreeItem(
-      'Actions',
-      'root_actions',
-      vscode.TreeItemCollapsibleState.Expanded
-    );
-    actionsItem.iconPath = new vscode.ThemeIcon('tools');
-
-    // 6. Findings Root
-    const currentFindings = this.getActiveDocumentFindings();
-    const findingsItem = new DashboardTreeItem(
-      `Findings (${currentFindings.length})`,
-      'root_findings',
-      vscode.TreeItemCollapsibleState.Expanded
-    );
-    findingsItem.iconPath = new vscode.ThemeIcon('list-unordered');
-
-    return [statusItem, currentFileItem, flowsItem, workspaceItem, actionsItem, findingsItem];
-  }
-
-  private getActiveDocumentFindings(): SecretFinding[] {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return [];
-    }
-    return this.diagnosticsManager.getFindingsForUri(editor.document.uri);
-  }
-
-  private getActiveDocumentFlows(): DataFlowGraph[] {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      return [];
-    }
-    return this.diagnosticsManager.getFlowsForUri(editor.document.uri);
-  }
-
-  private getCurrentFileStats(): DashboardTreeItem[] {
-    const findings = this.getActiveDocumentFindings();
-    const counts = this.diagnosticsManager.getSeverityCounts(findings);
-
-    const totalItem = new DashboardTreeItem(
-      `Findings: ${findings.length}`,
-      'stat_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    totalItem.iconPath = new vscode.ThemeIcon('search');
-
-    const highItem = new DashboardTreeItem(
-      `High: ${counts.high}`,
-      'stat_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    highItem.iconPath = new vscode.ThemeIcon(
-      'error',
-      new vscode.ThemeColor('problemsErrorIcon.foreground')
-    );
-
-    const mediumItem = new DashboardTreeItem(
-      `Medium: ${counts.medium}`,
-      'stat_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    mediumItem.iconPath = new vscode.ThemeIcon(
-      'warning',
-      new vscode.ThemeColor('problemsWarningIcon.foreground')
-    );
-
-    const lowItem = new DashboardTreeItem(
-      `Low: ${counts.low}`,
-      'stat_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    lowItem.iconPath = new vscode.ThemeIcon(
-      'info',
-      new vscode.ThemeColor('problemsInfoIcon.foreground')
-    );
-
-    return [totalItem, highItem, mediumItem, lowItem];
-  }
-
-  private getFlowItems(): DashboardTreeItem[] {
-    const flows = this.getActiveDocumentFlows();
-    if (flows.length === 0) {
-      const cleanItem = new DashboardTreeItem(
-        'No secret flows detected',
-        'empty_item',
-        vscode.TreeItemCollapsibleState.None
-      );
-      cleanItem.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
-      return [cleanItem];
-    }
-
-    return flows.map((flow) => {
-      const item = new DashboardTreeItem(
-        flow.summary,
-        'flow_item',
-        vscode.TreeItemCollapsibleState.None,
-        undefined,
-        flow
-      );
-
-      item.description = `[${flow.highestRisk}]`;
-      item.tooltip = `Secret Flow: ${flow.summary}\nRisk: ${flow.highestRisk}\nAdvice: ${flow.remediationAdvice}\nClick to view interactive flow graph.`;
-
-      if (flow.highestRisk === 'CRITICAL') {
-        item.iconPath = new vscode.ThemeIcon('flame', new vscode.ThemeColor('errorForeground'));
-      } else if (flow.highestRisk === 'HIGH') {
-        item.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('problemsErrorIcon.foreground'));
-      } else {
-        item.iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('problemsWarningIcon.foreground'));
+    // Findings by file list
+    const fileEntries: { uri: vscode.Uri; findings: SecretFinding[] }[] = [];
+    for (const [uriStr, findings] of allFindingsMap.entries()) {
+      if (findings.length > 0) {
+        fileEntries.push({
+          uri: vscode.Uri.parse(uriStr),
+          findings: [...findings].sort((a, b) => a.line - b.line || a.column - b.column),
+        });
       }
-
-      item.command = {
-        command: 'loyalKnight.showSecretFlow',
-        title: 'Open Secret Flow Graph',
-        arguments: [flow],
-      };
-
-      return item;
-    });
-  }
-
-  private getWorkspaceStats(): DashboardTreeItem[] {
-    const totalFindings = this.diagnosticsManager.getTotalFindingsCount();
-    const totalFlows = this.diagnosticsManager.getTotalFlowsCount();
-
-    const findingsItem = new DashboardTreeItem(
-      `Total Findings: ${totalFindings}`,
-      'stat_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    findingsItem.iconPath = new vscode.ThemeIcon(
-      totalFindings > 0 ? 'shield' : 'check',
-      totalFindings > 0
-        ? new vscode.ThemeColor('problemsWarningIcon.foreground')
-        : new vscode.ThemeColor('testing.iconPassed')
+    }
+    fileEntries.sort((a, b) =>
+      path.basename(a.uri.fsPath).localeCompare(path.basename(b.uri.fsPath))
     );
 
-    const flowsItem = new DashboardTreeItem(
-      `Total Flows: ${totalFlows}`,
-      'stat_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    flowsItem.iconPath = new vscode.ThemeIcon('type-hierarchy');
+    const fileGroupsHtml =
+      fileEntries.length === 0
+        ? `<div class="text-muted text-sm" style="text-align: center; padding: 20px;">No leaks detected.</div>`
+        : fileEntries
+            .map((entry, index) => {
+              const fileName = path.basename(entry.uri.fsPath);
+              const relPath = vscode.workspace.asRelativePath(entry.uri);
+              const dirName = path.dirname(relPath);
+              const folderDisplay = dirName !== '.' ? dirName : '';
+              const fileId = `file-${index}`;
+              const uriStr = entry.uri.toString();
 
-    return [findingsItem, flowsItem];
-  }
+              const findingsRows = entry.findings
+                .map((f) => {
+                  const conf = f.confidence.toLowerCase();
+                  const catUpper = f.confidence.toUpperCase();
+                  const colorClass = conf === 'high' ? 'color-high' : conf === 'medium' ? 'color-mid' : 'color-low';
+                  return `
+                  <div class="finding-row" onclick="onFindingClick('${uriStr}', ${f.line}, ${f.column}, ${f.endLine}, ${f.endColumn})" title="Click to jump to line ${f.line + 1}">
+                    <span class="finding-cat ${colorClass}">${catUpper}</span>
+                    <span class="finding-match mono text-sm">${this.escapeHtml(f.match)}</span>
+                    <span class="text-muted text-sm mono">:${f.line + 1}</span>
+                  </div>`;
+                })
+                .join('');
 
-  private getActionItems(): DashboardTreeItem[] {
-    const toggle = new DashboardTreeItem(
-      'Toggle Protection (ON/OFF)',
-      'action_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    toggle.iconPath = new vscode.ThemeIcon('shield');
-    toggle.command = {
-      command: 'loyalKnight.toggleProtection',
-      title: 'Toggle Protection',
-    };
+              return `
+              <div class="file-group" id="${fileId}">
+                <div class="file-header" onclick="toggleGroup('${fileId}')">
+                  <span id="chev-${fileId}" class="text-muted text-sm" style="width: 12px; display: inline-block;">▾</span>
+                  <span class="text-bold">${this.escapeHtml(fileName)}</span>
+                  ${folderDisplay ? `<span class="text-muted text-sm" style="margin-left: 4px;">${this.escapeHtml(folderDisplay)}</span>` : ''}
+                  <span class="text-muted text-sm" style="margin-left: auto;">${entry.findings.length}</span>
+                </div>
+                <div id="body-${fileId}">
+                  ${findingsRows}
+                </div>
+              </div>`;
+            })
+            .join('');
 
-    const scanStaged = new DashboardTreeItem(
-      'Scan Staged Changes (Git)',
-      'action_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    scanStaged.iconPath = new vscode.ThemeIcon('git-commit');
-    scanStaged.command = {
-      command: 'loyalKnight.scanStagedChanges',
-      title: 'Scan Staged Changes',
-    };
-
-    const showFlow = new DashboardTreeItem(
-      'Show Secret Flow Graph',
-      'action_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    showFlow.iconPath = new vscode.ThemeIcon('type-hierarchy');
-    showFlow.command = {
-      command: 'loyalKnight.showSecretFlow',
-      title: 'Show Secret Flow',
-    };
-
-    const settings = new DashboardTreeItem(
-      'Open Settings',
-      'action_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    settings.iconPath = new vscode.ThemeIcon('gear');
-    settings.command = {
-      command: 'loyalKnight.openSettings',
-      title: 'Open Settings',
-    };
-
-    return [toggle, scanStaged, showFlow, settings];
-  }
-
-  private getFindingItems(): DashboardTreeItem[] {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor) {
-      const emptyItem = new DashboardTreeItem(
-        'Open a file to view findings',
-        'empty_item',
-        vscode.TreeItemCollapsibleState.None
-      );
-      emptyItem.iconPath = new vscode.ThemeIcon('info');
-      return [emptyItem];
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loyal Knight Dashboard</title>
+  <style>
+    :root {
+      --spacing-sm: 4px;
+      --spacing-md: 8px;
+      --spacing-lg: 16px;
+      --border-color: var(--vscode-panel-border, rgba(128, 128, 128, 0.2));
+      --bg-subtle: var(--vscode-editor-background, rgba(0, 0, 0, 0.1));
+      --bg-hover: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+      --text-muted: var(--vscode-descriptionForeground, #999);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      color: var(--vscode-foreground);
+      background-color: var(--vscode-sideBar-background);
+      padding: var(--spacing-lg);
+      line-height: 1.5;
+      user-select: none;
+    }
+    
+    /* Typography */
+    .text-muted { color: var(--text-muted); }
+    .text-sm { font-size: 0.9em; }
+    .text-bold { font-weight: 600; }
+    .mono { font-family: var(--vscode-editor-font-family, monospace); }
+    
+    /* Layout */
+    .flex { display: flex; }
+    .flex-col { display: flex; flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-sm { gap: var(--spacing-sm); }
+    .gap-md { gap: var(--spacing-md); }
+    .mb-lg { margin-bottom: var(--spacing-lg); }
+    .mb-md { margin-bottom: var(--spacing-md); }
+    
+    /* Top Boxes */
+    .top-boxes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-md);
+    }
+    .action-box {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 10px;
+      cursor: pointer;
+    }
+    .action-box:hover { background: var(--bg-hover); }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .online .status-dot { background-color: var(--vscode-testing-iconPassed, #73c991); box-shadow: 0 0 4px rgba(115, 201, 145, 0.5); }
+    .offline .status-dot { background-color: var(--vscode-testing-iconFailed, #f14c4c); }
+    
+    /* Workspace Stats (Grid) */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-md);
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: var(--spacing-md);
+    }
+    .stat-total-wrapper {
+      grid-row: span 3;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border-right: 1px solid var(--border-color);
+      padding-right: var(--spacing-md);
+    }
+    .stat-total-num { font-size: 2.2em; font-weight: 300; }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 0;
+    }
+    .color-high { color: var(--vscode-problemsErrorIcon-foreground, #f14c4c); }
+    .color-mid { color: var(--vscode-problemsWarningIcon-foreground, #cca700); }
+    .color-low { color: var(--vscode-problemsInfoIcon-foreground, #3794ff); }
+    
+    /* Current File */
+    .current-file-label {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 8px 10px;
     }
 
-    const findings = this.diagnosticsManager.getFindingsForUri(editor.document.uri);
-    if (findings.length === 0) {
-      const cleanItem = new DashboardTreeItem(
-        'No secrets detected in current file',
-        'empty_item',
-        vscode.TreeItemCollapsibleState.None
-      );
-      cleanItem.iconPath = new vscode.ThemeIcon(
-        'check',
-        new vscode.ThemeColor('testing.iconPassed')
-      );
-      return [cleanItem];
+    /* Section Headers */
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: var(--spacing-md);
+      font-weight: 600;
     }
 
-    const fileName = path.basename(editor.document.uri.fsPath);
+    /* Findings */
+    .file-group {
+      margin-bottom: var(--spacing-md);
+    }
+    .file-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+    }
+    .file-header:hover { background: var(--bg-hover); }
+    .finding-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      padding: 4px 4px 4px 20px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .finding-row:hover { background: var(--bg-hover); }
+    .finding-cat { font-weight: 600; font-size: 0.85em; width: 40px; flex-shrink: 0; }
+    .finding-match { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.8; }
+  </style>
+</head>
+<body>
 
-    return findings.map((finding) => {
-      const label = `${finding.type}: ${finding.match}`;
-      const item = new DashboardTreeItem(
-        label,
-        'finding_item',
-        vscode.TreeItemCollapsibleState.None,
-        finding,
-        undefined,
-        editor.document.uri
-      );
+  <!-- Top Controls -->
+  <div class="top-boxes mb-lg">
+    <div class="action-box flex-col gap-sm ${isOnline ? 'online' : 'offline'}" onclick="onToggleProtection()" title="Click to toggle Loyal Knight real-time protection">
+      <div class="flex items-center gap-sm">
+        <div class="status-dot"></div>
+        <span class="text-bold">Loyal Knight</span>
+      </div>
+      <span class="text-sm text-muted">${isOnline ? 'Active Protection' : 'Protection Paused'}</span>
+    </div>
+    
+    <div class="action-box flex-col gap-sm" onclick="onOpenSettings()" title="Click to configure Loyal Knight settings">
+      <div class="flex items-center gap-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span class="text-bold">Settings</span>
+      </div>
+      <span class="text-sm text-muted">Configuration Rules</span>
+    </div>
+  </div>
 
-      item.description = `${fileName}:${finding.line + 1}`;
-      item.tooltip = `${finding.type} (${finding.provider.toUpperCase()})\nConfidence: ${finding.confidence.toUpperCase()}\nLocation: Line ${finding.line + 1}, Col ${finding.column + 1}\nMasked Secret: ${finding.match}`;
+  <!-- Current File -->
+  <div class="mb-lg">
+    <div class="section-title">Current File</div>
+    <div class="current-file-label flex items-center gap-md">
+      <span class="mono">${this.escapeHtml(currentFileName)}</span>
+      <span class="text-muted">|</span>
+      <span class="${currentFileLeaksCount > 0 ? 'color-high text-bold' : 'text-muted'}">${currentFileLeaksCount} leak(s)</span>
+    </div>
+  </div>
 
-      if (finding.confidence === 'high') {
-        item.iconPath = new vscode.ThemeIcon(
-          'error',
-          new vscode.ThemeColor('problemsErrorIcon.foreground')
-        );
-      } else if (finding.confidence === 'medium') {
-        item.iconPath = new vscode.ThemeIcon(
-          'warning',
-          new vscode.ThemeColor('problemsWarningIcon.foreground')
-        );
+  <!-- Workspace Stats -->
+  <div class="mb-lg">
+    <div class="section-title">Workspace Leaks</div>
+    <div class="stats-grid">
+      <div class="stat-total-wrapper">
+        <span class="stat-total-num ${totalWorkspaceLeaks > 0 ? 'color-high' : 'text-muted'}">${totalWorkspaceLeaks}</span>
+        <span class="text-sm text-muted">Total</span>
+      </div>
+      <div class="flex-col justify-between">
+        <div class="stat-row">
+          <span class="text-sm text-muted">High</span>
+          <span class="text-bold color-high">${counts.high}</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-sm text-muted">Medium</span>
+          <span class="text-bold color-mid">${counts.medium}</span>
+        </div>
+        <div class="stat-row">
+          <span class="text-sm text-muted">Low</span>
+          <span class="text-bold color-low">${counts.low}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Findings -->
+  <div>
+    <div class="section-title flex justify-between">
+      <span>Findings</span>
+    </div>
+    <div class="findings-list">
+      ${fileGroupsHtml}
+    </div>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi();
+
+    function onToggleProtection() {
+      vscode.postMessage({ type: 'toggleProtection' });
+    }
+
+    function onOpenSettings() {
+      vscode.postMessage({ type: 'openSettings' });
+    }
+
+    function onFindingClick(uri, line, col, endLine, endCol) {
+      vscode.postMessage({
+        type: 'openFinding',
+        uri,
+        line,
+        column: col,
+        endLine,
+        endColumn: endCol
+      });
+    }
+
+    function toggleGroup(fileId) {
+      const body = document.getElementById('body-' + fileId);
+      const chev = document.getElementById('chev-' + fileId);
+      if (!body) return;
+      if (body.style.display === 'none') {
+        body.style.display = 'block';
+        if (chev) chev.textContent = '▾';
       } else {
-        item.iconPath = new vscode.ThemeIcon(
-          'info',
-          new vscode.ThemeColor('problemsInfoIcon.foreground')
-        );
+        body.style.display = 'none';
+        if (chev) chev.textContent = '▸';
       }
+    }
+  </script>
+</body>
+</html>`;
+  }
 
-      item.command = {
-        command: 'vscode.open',
-        title: 'Go to Finding',
-        arguments: [
-          editor.document.uri,
-          {
-            selection: new vscode.Range(
-              finding.line,
-              finding.column,
-              finding.endLine,
-              finding.endColumn
-            ),
-          },
-        ],
-      };
+  private getFileIconSvg(fileName: string): string {
+    const ext = path.extname(fileName).toLowerCase();
+    if (ext === '.json' || ext === '.jsonc') {
+      return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbcb41" stroke-width="2"><path d="M4 4v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2z"/></svg>`;
+    }
+    if (ext === '.ts' || ext === '.tsx') {
+      return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3178c6" stroke-width="2"><path d="M4 4v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2z"/></svg>`;
+    }
+    if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
+      return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f7df1e" stroke-width="2"><path d="M4 4v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6a2 2 0 0 0-2 2z"/></svg>`;
+    }
+    return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  }
 
-      return item;
-    });
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   public dispose(): void {
-    this._onDidChangeTreeData.dispose();
     for (const d of this.disposables) {
       d.dispose();
     }

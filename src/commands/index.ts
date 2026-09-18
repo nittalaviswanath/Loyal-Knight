@@ -28,10 +28,10 @@ export function registerCommands(
 
       if (newState) {
         scanner.scanOpenDocuments();
-        vscode.window.showInformationMessage('🛡 LOYAL KNIGHT: Protection is now ACTIVE.');
+        vscode.window.showInformationMessage('🛡 LOYAL KNIGHT: Protection is now ONLINE.');
       } else {
         diagnosticsManager.clearAll();
-        vscode.window.showWarningMessage('⚪ LOYAL KNIGHT: Protection is now PAUSED.');
+        vscode.window.showWarningMessage('⚪ LOYAL KNIGHT: Protection is now OFFLINE.');
       }
     })
   );

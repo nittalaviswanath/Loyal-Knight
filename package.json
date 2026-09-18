@@ -28,6 +28,7 @@
     "views": {
       "loyalKnight": [
         {
+          "type": "webview",
           "id": "loyalKnight.dashboard",
           "name": "Security Dashboard"
         }
@@ -36,24 +37,9 @@
     "menus": {
       "view/title": [
         {
-          "command": "loyalKnight.toggleProtection",
-          "when": "view == loyalKnight.dashboard",
-          "group": "navigation@1"
-        },
-        {
-          "command": "loyalKnight.showSecretFlow",
-          "when": "view == loyalKnight.dashboard",
-          "group": "navigation@2"
-        },
-        {
           "command": "loyalKnight.refresh",
           "when": "view == loyalKnight.dashboard",
-          "group": "navigation@3"
-        },
-        {
-          "command": "loyalKnight.openSettings",
-          "when": "view == loyalKnight.dashboard",
-          "group": "navigation@4"
+          "group": "navigation"
         }
       ]
     },
