@@ -34,7 +34,7 @@ export const DEFAULT_CONFIG: SentryConfig = {
   },
   blacklist: {
     folders: ['node_modules', 'dist', '.git', 'vendor', 'out', '.secretsentry', '.vscode'],
-    files: ['*.min.js', '*.map', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'],
+    files: ['*.min.js', '*.map', 'package-lock.json', 'package.json', 'yarn.lock', 'pnpm-lock.yaml'],
   },
   ignoredMatches: [],
   providers: {
