@@ -1,6 +1,8 @@
 {
   "name": "loyal-knight",
+  "publisher": "singularity",
   "displayName": "LOYAL KNIGHT",
+  "icon": "icon.svg",
   "description": "Local API Leak & Secret Lifecycle Security Extension",
   "version": "0.1.0",
   "engines": {
