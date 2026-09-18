@@ -21,7 +21,6 @@ export interface SentryConfig {
   version: number;
   scanning: ScanningConfig;
   blacklist: PathFilterConfig;
-  whitelist: PathFilterConfig;
   ignoredMatches: IgnoredMatch[];
   providers: ProviderSettings;
 }
@@ -36,10 +35,6 @@ export const DEFAULT_CONFIG: SentryConfig = {
   blacklist: {
     folders: ['node_modules', 'dist', '.git', 'vendor', 'out', '.secretsentry', '.vscode'],
     files: ['*.min.js', '*.map', 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'],
-  },
-  whitelist: {
-    folders: [],
-    files: ['.env.example'],
   },
   ignoredMatches: [],
   providers: {

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'node:fs';
 import { ConfigManager } from '../config/configManager.js';
 import { DiagnosticsManager } from '../diagnostics/diagnosticsManager.js';
 import { StatusBarManager } from '../ui/statusBar.js';
@@ -11,6 +12,7 @@ export class DocumentScanner implements vscode.Disposable {
   private readonly statusBarManager?: StatusBarManager;
   private readonly astAnalyzer = new AstAnalyzer();
   private readonly debounceTimers = new Map<string, NodeJS.Timeout>();
+  private readonly scannedFileCache = new Map<string, { mtimeMs: number; findingsCount: number }>();
   private disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -140,6 +142,16 @@ export class DocumentScanner implements vscode.Disposable {
     // 3. Update diagnostics and in-memory caches
     this.diagnosticsManager.updateFindingsAndFlows(document.uri, findings, flows);
 
+    try {
+      const stat = fs.statSync(document.uri.fsPath);
+      this.scannedFileCache.set(document.uri.fsPath, {
+        mtimeMs: stat.mtimeMs,
+        findingsCount: findings.length,
+      });
+    } catch (e) {
+      // Ignore if file doesn't exist on disk (e.g. untitled)
+    }
+
     const durationMs = Date.now() - startTime;
 
     // 4. If save scan, provide brief status telemetry
@@ -174,7 +186,7 @@ export class DocumentScanner implements vscode.Disposable {
         cancellable: true,
       },
       async (progress, token) => {
-        const files = await vscode.workspace.findFiles('**/*', '**/node_modules/**');
+        const files = await vscode.workspace.findFiles('**/*');
         const eligibleFiles = files.filter((uri) => !this.configManager.isPathIgnored(uri.fsPath));
         let totalFindings = 0;
         let processed = 0;
@@ -185,6 +197,15 @@ export class DocumentScanner implements vscode.Disposable {
           }
 
           try {
+            const stat = fs.statSync(uri.fsPath);
+            const cached = this.scannedFileCache.get(uri.fsPath);
+
+            if (cached && cached.mtimeMs === stat.mtimeMs) {
+              totalFindings += cached.findingsCount;
+              processed++;
+              continue;
+            }
+
             const document = await vscode.workspace.openTextDocument(uri);
             const text = document.getText();
             const options = this.configManager.getScanOptions(uri.fsPath);
@@ -193,6 +214,11 @@ export class DocumentScanner implements vscode.Disposable {
 
             this.diagnosticsManager.updateFindingsAndFlows(uri, findings, flows);
             totalFindings += findings.length;
+
+            this.scannedFileCache.set(uri.fsPath, {
+              mtimeMs: stat.mtimeMs,
+              findingsCount: findings.length,
+            });
           } catch (err) {
             console.error(`[LOYAL KNIGHT] Error scanning file ${uri.fsPath}:`, err);
           }

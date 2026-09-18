@@ -14,11 +14,10 @@ export function matchesPattern(name: string, pattern: string): boolean {
 
 /**
  * Determines whether a given file path should be ignored.
- * Whitelist overrides blacklist.
  */
 export function isPathIgnored(
   filePath: string,
-  config: Pick<SentryConfig, 'blacklist' | 'whitelist'>
+  config: Pick<SentryConfig, 'blacklist'>
 ): boolean {
   const normalized = filePath.replace(/\\/g, '/');
   const fileName = path.basename(normalized);
@@ -26,18 +25,6 @@ export function isPathIgnored(
   // Always ignore .secretsentry folder itself
   if (normalized.includes('/.secretsentry/')) {
     return true;
-  }
-
-  // Whitelist overrides blacklist
-  for (const pattern of config.whitelist.files) {
-    if (matchesPattern(fileName, pattern) || normalized.endsWith(pattern)) {
-      return false;
-    }
-  }
-  for (const folder of config.whitelist.folders) {
-    if (normalized.includes(`/${folder}/`)) {
-      return false;
-    }
   }
 
   // Check blacklist folders

@@ -52,7 +52,6 @@ export class ConfigManager implements vscode.Disposable {
       ...partial,
       scanning: { ...this.config.scanning, ...(partial.scanning ?? {}) },
       blacklist: { ...this.config.blacklist, ...(partial.blacklist ?? {}) },
-      whitelist: { ...this.config.whitelist, ...(partial.whitelist ?? {}) },
       providers: { ...this.config.providers, ...(partial.providers ?? {}) },
     };
     this.saveConfig();
@@ -114,10 +113,6 @@ export class ConfigManager implements vscode.Disposable {
         blacklist: {
           folders: parsed.blacklist?.folders ?? DEFAULT_CONFIG.blacklist.folders,
           files: parsed.blacklist?.files ?? DEFAULT_CONFIG.blacklist.files,
-        },
-        whitelist: {
-          folders: parsed.whitelist?.folders ?? DEFAULT_CONFIG.whitelist.folders,
-          files: parsed.whitelist?.files ?? DEFAULT_CONFIG.whitelist.files,
         },
         ignoredMatches: parsed.ignoredMatches ?? DEFAULT_CONFIG.ignoredMatches,
         providers: { ...DEFAULT_CONFIG.providers, ...(parsed.providers ?? {}) },

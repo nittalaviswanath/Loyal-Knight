@@ -53,14 +53,6 @@ suite('Configuration & Path Filtering Suite', () => {
     );
   });
 
-  test('Whitelist overrides blacklist', () => {
-    // .env.example is whitelisted by default
-    assert.strictEqual(
-      isPathIgnored('c:/project/.env.example', DEFAULT_CONFIG),
-      false
-    );
-  });
-
   test('Allows regular source files', () => {
     assert.strictEqual(
       isPathIgnored('c:/project/src/services/auth.ts', DEFAULT_CONFIG),
