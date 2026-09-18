@@ -10,7 +10,7 @@ import {
   scanText,
 } from '../detectors/index.js';
 
-/*
+/*//dfbfgnhmjh,j.gb fgn
  * Test credentials are deliberately assembled from fragments.
  *
  * This lets the detector receive realistic provider-shaped strings at runtime
@@ -602,7 +602,7 @@ suite('Phase 1: Detection Engine Suite', () => {
 
       assert.strictEqual(
         findings[0].confidence,
-        'high'
+        'medium'
       );
 
       assert.strictEqual(

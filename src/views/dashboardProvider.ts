@@ -291,28 +291,6 @@ export class DashboardProvider
       title: 'Toggle Protection',
     };
 
-    const scanCurrent = new DashboardTreeItem(
-      'Scan Current File',
-      'action_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    scanCurrent.iconPath = new vscode.ThemeIcon('search');
-    scanCurrent.command = {
-      command: 'loyalKnight.scanCurrentFile',
-      title: 'Scan Current File',
-    };
-
-    const scanWorkspace = new DashboardTreeItem(
-      'Scan Workspace',
-      'action_item',
-      vscode.TreeItemCollapsibleState.None
-    );
-    scanWorkspace.iconPath = new vscode.ThemeIcon('search');
-    scanWorkspace.command = {
-      command: 'loyalKnight.scanWorkspace',
-      title: 'Scan Workspace',
-    };
-
     const scanStaged = new DashboardTreeItem(
       'Scan Staged Changes (Git)',
       'action_item',
@@ -346,7 +324,7 @@ export class DashboardProvider
       title: 'Open Settings',
     };
 
-    return [toggle, scanCurrent, scanWorkspace, scanStaged, showFlow, settings];
+    return [toggle, scanStaged, showFlow, settings];
   }
 
   private getFindingItems(): DashboardTreeItem[] {

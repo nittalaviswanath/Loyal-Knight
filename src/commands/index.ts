@@ -36,29 +36,7 @@ export function registerCommands(
     })
   );
 
-  // 2. Scan Current File
-  context.subscriptions.push(
-    vscode.commands.registerCommand('loyalKnight.scanCurrentFile', () => {
-      const editor = vscode.window.activeTextEditor;
-      if (!editor) {
-        vscode.window.showWarningMessage('LOYAL KNIGHT: No active file to scan.');
-        return;
-      }
-      scanner.scanDocument(editor.document, 'MANUAL');
-      dashboardProvider.refresh();
-      vscode.window.showInformationMessage(
-        `LOYAL KNIGHT: Scanned ${vscode.workspace.asRelativePath(editor.document.uri)}.`
-      );
-    })
-  );
 
-  // 3. Scan Workspace
-  context.subscriptions.push(
-    vscode.commands.registerCommand('loyalKnight.scanWorkspace', async () => {
-      await scanner.scanWorkspace();
-      dashboardProvider.refresh();
-    })
-  );
 
   // 4. Scan Staged Changes (Git)
   context.subscriptions.push(

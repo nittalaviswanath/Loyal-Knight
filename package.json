@@ -65,18 +65,6 @@
         "icon": "$(shield)"
       },
       {
-        "command": "loyalKnight.scanCurrentFile",
-        "title": "Scan Current File",
-        "category": "LOYAL KNIGHT",
-        "icon": "$(search)"
-      },
-      {
-        "command": "loyalKnight.scanWorkspace",
-        "title": "Scan Workspace",
-        "category": "LOYAL KNIGHT",
-        "icon": "$(search)"
-      },
-      {
         "command": "loyalKnight.scanStagedChanges",
         "title": "Scan Staged Changes",
         "category": "LOYAL KNIGHT",

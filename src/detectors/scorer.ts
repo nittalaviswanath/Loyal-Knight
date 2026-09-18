@@ -82,28 +82,20 @@ function adjustConfidenceForContext(
   filePath?: string,
   lineText?: string
 ): FindingConfidence {
-  let score = baseConfidence === 'high' ? 3 : baseConfidence === 'medium' ? 2 : 1;
-
-  // Boost for high-signal variable names
-  if (/(?:api[_-]?key|secret|token|password|credential|private[_-]?key)/i.test(context)) {
-    score += 1;
-  }
-
-  // Downgrade for test environments or mock comments
   const isTestPath = filePath && /(?:\.test\.|\.spec\.|__tests__|fixtures?|mocks?)/i.test(filePath);
-  const hasMockComment = lineText && /(?:\/\/|\/\*|#)\s*(?:test|mock|example|fake|sample|dummy)/i.test(lineText);
+  const hasMockComment = lineText && /(?:\/\/|\/\*|#)\s*(?:mock|test|fixture|dummy|example|fake)/i.test(lineText);
+  const isMockContext = !!(isTestPath || hasMockComment);
 
-  if (isTestPath || hasMockComment) {
-    score -= 1;
+  if (baseConfidence === 'high') {
+    return isMockContext ? 'medium' : 'high';
   }
 
-  if (score >= 3) {
-    return 'high';
+  const hasSuspiciousName = /(?:api[_-]?key|secret|token|password|client[_-]?secret)/i.test(context);
+  if (baseConfidence === 'low') {
+    return hasSuspiciousName ? 'medium' : 'low';
   }
-  if (score === 2) {
-    return 'medium';
-  }
-  return 'low';
+
+  return 'medium';
 }
 
 function rangesOverlap(start1: number, end1: number, start2: number, end2: number): boolean {
@@ -241,14 +233,8 @@ export function scanLine(
         }
 
         // Determine base confidence from entropy magnitude and context
+        // Entropy-only is always low, unless promoted by suspicious assignment context
         let baseConfidence: FindingConfidence = 'low';
-        const hasAssignmentClue = /(?:api[_-]?key|secret|token|password|credential)/i.test(candidate.context);
-
-        if (entropy >= 4.8 || (entropy >= 4.3 && hasAssignmentClue)) {
-          baseConfidence = 'high';
-        } else if (entropy >= 4.3 || hasAssignmentClue) {
-          baseConfidence = 'medium';
-        }
 
         const confidence = adjustConfidenceForContext(
           baseConfidence,
