@@ -4,12 +4,14 @@
   <p><strong>Advanced Local API Leak & Secret Lifecycle Security for VS Code</strong></p>
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-  [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blueviolet.svg)](#)
+  [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-blueviolet.svg)](https://marketplace.visualstudio.com/items?itemName=singularity-dudes.loyal-knight)
 </div>
 
 ---
 
 **Loyal Knight** is an enterprise-grade, locally-running Visual Studio Code extension engineered to prevent API leaks and manage the secret lifecycle seamlessly. It acts as your personal data guardian, ensuring that sensitive credentials—like API keys, tokens, and passwords—are never accidentally hardcoded in your source files or committed to your repositories.
+
+Because Loyal Knight runs **fully locally and offline**, you get real-time security analysis without any of your source code or secrets ever leaving your machine. This guarantees absolute privacy, lightning-fast performance, and zero dependency on external cloud services.
 
 <div align="center">
   <img src="media/dashboard.png" alt="Loyal Knight Security Dashboard" width="420" />
@@ -30,7 +32,8 @@ In modern development workflows, a single leaked API key can result in catastrop
 
 ## 🚀 Key Features
 
-*   **Real-Time Live Scanning:** Monitors your active buffers as you type to instantly detect potential secrets before you even hit save.
+*   **100% Local & Offline Execution:** All scanning and analysis happens directly on your machine. No internet connection is required, and your code never leaves your IDE.
+*   **Real-Time Live Scanning:** Monitors your active buffers as you type to instantly detect potential secrets before you even hit save, entirely locally.
 *   **Scan on Save:** Performs dedicated security and data-flow analysis every time a file is saved.
 *   **Git Pre-commit Protection:** Scans staged changes to guarantee that secrets never make it into your git history.
 *   **Centralized Security Dashboard:** A unified, sleek view of all detected vulnerabilities, categorized by severity (High, Medium, Low), and the overall security posture of your workspace.
