@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="media/shield.svg" alt="Loyal Knight Logo" width="120" />
   <h1>🛡️ Loyal Knight</h1>
   <p><strong>Advanced Local API Leak & Secret Lifecycle Security for VS Code</strong></p>
   
@@ -32,13 +31,13 @@ In modern development workflows, a single leaked API key can result in catastrop
 
 ## 🚀 Key Features
 
-*   **100% Local & Offline Execution:** All scanning and analysis happens directly on your machine. No internet connection is required, and your code never leaves your IDE.
-*   **Real-Time Live Scanning:** Monitors your active buffers as you type to instantly detect potential secrets before you even hit save, entirely locally.
-*   **Scan on Save:** Performs dedicated security and data-flow analysis every time a file is saved.
-*   **Git Pre-commit Protection:** Scans staged changes to guarantee that secrets never make it into your git history.
-*   **Centralized Security Dashboard:** A unified, sleek view of all detected vulnerabilities, categorized by severity (High, Medium, Low), and the overall security posture of your workspace.
-*   **One-Click Auto-Remediation:** Offers smart, automated solutions to safely extract hardcoded secrets and move them into environment variables (`.env`) or secure storage.
-*   **Secret Data Flow Visualization:** Visually track the lifecycle of sensitive data as it moves from source to sink across your codebase.
+- **100% Local & Offline Execution:** All scanning and analysis happens directly on your machine. No internet connection is required, and your code never leaves your IDE.
+- **Real-Time Live Scanning:** Monitors your active buffers as you type to instantly detect potential secrets before you even hit save, entirely locally.
+- **Scan on Save:** Performs dedicated security and data-flow analysis every time a file is saved.
+- **Git Pre-commit Protection:** Scans staged changes to guarantee that secrets never make it into your git history.
+- **Centralized Security Dashboard:** A unified, sleek view of all detected vulnerabilities, categorized by severity (High, Medium, Low), and the overall security posture of your workspace.
+- **One-Click Auto-Remediation:** Offers smart, automated solutions to safely extract hardcoded secrets and move them into environment variables (`.env`) or secure storage.
+- **Secret Data Flow Visualization:** Visually track the lifecycle of sensitive data as it moves from source to sink across your codebase.
 
 ---
 
@@ -50,7 +49,7 @@ To install Loyal Knight in VS Code:
 2. Search for `Loyal Knight`.
 3. Click **Install**.
 
-*Note: For local development, you can clone this repository, open it in VS Code, and press `F5` to launch a new Extension Development Host.*
+_Note: For local development, you can clone this repository, open it in VS Code, and press `F5` to launch a new Extension Development Host._
 
 ---
 
@@ -58,13 +57,13 @@ To install Loyal Knight in VS Code:
 
 Customize Loyal Knight to fit your workflow perfectly via VS Code Settings (`Ctrl+,` or `Cmd+,`):
 
-| Setting | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `loyalKnight.enabled` | `Boolean` | `true` | Master switch to enable or disable the extension globally. |
-| `loyalKnight.liveScan.enabled` | `Boolean` | `true` | Enable real-time buffer scanning as you type. |
-| `loyalKnight.scanOnSave.enabled` | `Boolean` | `true` | Enable comprehensive security and data-flow scans upon saving a file. |
+| Setting                          | Type      | Default | Description                                                           |
+| :------------------------------- | :-------- | :------ | :-------------------------------------------------------------------- |
+| `loyalKnight.enabled`            | `Boolean` | `true`  | Master switch to enable or disable the extension globally.            |
+| `loyalKnight.liveScan.enabled`   | `Boolean` | `true`  | Enable real-time buffer scanning as you type.                         |
+| `loyalKnight.scanOnSave.enabled` | `Boolean` | `true`  | Enable comprehensive security and data-flow scans upon saving a file. |
 
-*Files ignored by `.gitignore` and massive directories like `node_modules` are automatically skipped for optimal performance.*
+_Files ignored by `.gitignore` and massive directories like `node_modules` are automatically skipped for optimal performance._
 
 ---
 
@@ -72,14 +71,14 @@ Customize Loyal Knight to fit your workflow perfectly via VS Code Settings (`Ctr
 
 Access the following commands via the VS Code Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`):
 
-*   `Loyal Knight: Toggle Protection` — Quickly enable or disable active protection.
-*   `Loyal Knight: Scan Current File` — Run an on-demand scan on the currently active editor.
-*   `Loyal Knight: Scan Workspace` — Run a comprehensive, indexed scan across the entire project.
-*   `Loyal Knight: Scan Staged Changes` — Check your git staging area for potential leaks.
-*   `Loyal Knight: Show Security Dashboard` — Open the central security analytics dashboard.
-*   `Loyal Knight: Show Secret Flow` — Visualize how detected secrets flow through your code.
-*   `Loyal Knight: Auto Remediate Secret` — Apply automatic fixes for highlighted secrets.
-*   `Loyal Knight: Open Settings` — Quickly jump to the extension's configuration.
+- `Loyal Knight: Toggle Protection` — Quickly enable or disable active protection.
+- `Loyal Knight: Scan Current File` — Run an on-demand scan on the currently active editor.
+- `Loyal Knight: Scan Workspace` — Run a comprehensive, indexed scan across the entire project.
+- `Loyal Knight: Scan Staged Changes` — Check your git staging area for potential leaks.
+- `Loyal Knight: Show Security Dashboard` — Open the central security analytics dashboard.
+- `Loyal Knight: Show Secret Flow` — Visualize how detected secrets flow through your code.
+- `Loyal Knight: Auto Remediate Secret` — Apply automatic fixes for highlighted secrets.
+- `Loyal Knight: Open Settings` — Quickly jump to the extension's configuration.
 
 ---
 
@@ -87,12 +86,12 @@ Access the following commands via the VS Code Command Palette (`Ctrl+Shift+P` or
 
 The codebase is highly modular, designed for extensibility and performance:
 
-*   **`src/detectors/`**: The core detection engine utilizing regex, fast entropy analysis, and context recognition.
-*   **`src/scanner/`**: Orchestrates high-performance file indexing, buffer scanning, and whole-workspace traversals.
-*   **`src/analysis/`**: Contains the logic for AST (Abstract Syntax Tree) data flow tracking.
-*   **`src/remediation/`**: Automated logic for refactoring hardcoded secrets to secure locations.
-*   **`src/git/`**: Pre-commit hooks and git staging area integrations.
-*   **`src/views/` & `src/ui/`**: Webview implementations for the sleek Security Dashboard.
+- **`src/detectors/`**: The core detection engine utilizing regex, fast entropy analysis, and context recognition.
+- **`src/scanner/`**: Orchestrates high-performance file indexing, buffer scanning, and whole-workspace traversals.
+- **`src/analysis/`**: Contains the logic for AST (Abstract Syntax Tree) data flow tracking.
+- **`src/remediation/`**: Automated logic for refactoring hardcoded secrets to secure locations.
+- **`src/git/`**: Pre-commit hooks and git staging area integrations.
+- **`src/views/` & `src/ui/`**: Webview implementations for the sleek Security Dashboard.
 
 ---
 
